@@ -1,0 +1,23 @@
+[project]
+name = "gui-python-webui-starter"
+version = "0.1.0"
+description = "A starter for a Python GUI project using webui2 and uv."
+authors = [
+    {name = "Your Name", email = "you@example.com"},
+]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.13"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "webui2",
+    "fastapi",
+    "uvicorn",
+    "pytest",
+    "httpx",
+    "psutil>=7.2.2",
+]
