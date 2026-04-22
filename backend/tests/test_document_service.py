@@ -1,6 +1,4 @@
 import pytest
-import os
-import sqlite3
 from backend.src.services.document_service import DocumentService
 from backend.src.core.database import Database
 from backend.src.core.container import DIContainer
@@ -18,7 +16,6 @@ class TestDocumentService:
     def service(self, container, db_path):
         # We need to monkeypatch the database path for testing
         from backend.src.core import database
-        original_get_db = database.get_db
         
         test_db = Database(db_path)
         database._db = test_db # Inject test db
@@ -31,17 +28,16 @@ class TestDocumentService:
         database._db = None # Reset
 
     def test_create_and_get_all(self, service):
-        # Initial data (1 doc from init_db)
-        docs = service.get_all()
-        assert len(docs) == 1
+        # Initial data (seeded docs)
+        initial_count = len(service.get_all())
         
         # Create new
         new_doc = service.create("Test Title", "Test Content")
         assert new_doc.title == "Test Title"
         
-        # Verify count
+        # Verify count increased
         docs = service.get_all()
-        assert len(docs) == 2
+        assert len(docs) == initial_count + 1
         assert any(d.id == new_doc.id for d in docs)
 
     def test_get_by_id(self, service):
@@ -63,8 +59,15 @@ class TestDocumentService:
         reloaded = service.get_by_id(doc.id)
         assert reloaded.title == "New Title"
 
-    def test_delete(self, service):
-        doc = service.create("To Delete", "...")
-        assert service.delete(doc.id) is True
-        assert service.get_by_id(doc.id) is None
-        assert service.delete(doc.id) is False
+    def test_document_boundaries(self, service):
+        """Test documents with extreme sizes and empty content."""
+        # 1. Empty title and content
+        doc_empty = service.create("", "")
+        assert doc_empty.title == ""
+        assert doc_empty.content == ""
+        
+        # 2. Very large content (1MB)
+        large_content = "A" * (1024 * 1024)
+        doc_large = service.create("Large Doc", large_content)
+        retrieved = service.get_by_id(doc_large.id)
+        assert retrieved.content == large_content

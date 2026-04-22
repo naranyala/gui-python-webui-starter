@@ -1,4 +1,5 @@
 import { getConfig } from '../core/config.js';
+import { z } from 'zod';
 
 /**
  * Base Service class with DI support
@@ -47,6 +48,8 @@ export class ApiClient extends BaseService {
       '/todos': 'get_todos',
       '/graph': 'get_graph',
       '/system': 'get_system_stats',
+      '/settings': 'get_settings',
+      'POST /settings': 'update_setting',
       'POST /todos': 'create_todo',
       '/todos/': 'toggle_todo',
       'DELETE /todos/': 'delete_todo',
@@ -127,7 +130,14 @@ export class ApiClient extends BaseService {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      return await response.json();
+      const data = await response.json();
+      
+      // Basic validation: Ensure we have a success flag
+      if (typeof data !== 'object' || data === null || !('success' in data)) {
+        throw new Error('Invalid API response format: missing "success" flag');
+      }
+
+      return data;
     } catch (error) {
       console.error(`[ApiClient] Request failed: ${endpoint}`, error);
       throw error;

@@ -15,11 +15,13 @@ class SettingsService(BaseService):
     
     def _load_settings(self):
         db = get_db()
-        # Create settings table if not exists
-        db.execute("CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)")
-        db.commit()
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        cursor.execute("CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)")
+        conn.commit()
         
-        cursor = db.execute("SELECT key, value FROM settings")
+        cursor = conn.cursor()
+        cursor.execute("SELECT key, value FROM settings")
         for key, value in cursor.fetchall():
             try:
                 self._settings[key] = json.loads(value)
@@ -32,19 +34,21 @@ class SettingsService(BaseService):
     def set_setting(self, key: str, value: Any):
         self._settings[key] = value
         db = get_db()
+        conn = db.get_connection()
         serialized_value = json.dumps(value)
-        db.execute(
+        conn.execute(
             "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", 
             (key, serialized_value)
         )
-        db.commit()
+        conn.commit()
         return True
     
     def delete_setting(self, key: str):
         if key in self._settings:
             del self._settings[key]
             db = get_db()
-            db.execute("DELETE FROM settings WHERE key = ?", (key,))
-            db.commit()
+            conn = db.get_connection()
+            conn.execute("DELETE FROM settings WHERE key = ?", (key,))
+            conn.commit()
             return True
         return False

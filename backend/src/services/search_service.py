@@ -1,4 +1,3 @@
-from typing import Optional
 from .base import BaseService
 from shared.types import SearchResult, Document
 

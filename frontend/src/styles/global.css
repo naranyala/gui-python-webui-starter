@@ -24,16 +24,20 @@ body {
 .app-container {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  min-height: 100vh;
+  height: 100dvh;
 }
 
 .header {
   background: var(--header-color);
-  padding: 12px 25px;
+  padding: 12px 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
 .header h1 {
@@ -70,7 +74,8 @@ body {
 
 .main-content {
   flex: 1;
-  overflow: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .docs-layout {
@@ -139,7 +144,7 @@ body {
 .doc-viewer {
   display: flex;
   flex-direction: column;
-  padding: 40px;
+  padding: 20px;
   overflow-y: auto;
   background: var(--bg-color);
 }
@@ -298,8 +303,8 @@ body {
 
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 25px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
 }
 
 .card {
@@ -536,11 +541,19 @@ body {
 @media (max-width: 900px) {
   .docs-layout {
     grid-template-columns: 1fr;
+    height: auto;
   }
   .sidebar {
     border-right: none;
     border-bottom: 1px solid var(--border-color);
-    max-height: 250px;
+    max-height: none;
+    padding: 15px;
+  }
+  .doc-viewer {
+    padding: 20px;
+  }
+  .header h1 {
+    font-size: 1.1rem;
   }
 }
 
@@ -625,4 +638,89 @@ body {
 .os-info li {
     font-size: 0.9rem;
     color: var(--text-color);
+}
+
+.settings-container {
+    padding: 20px;
+    color: var(--text-color);
+}
+
+.settings-container h2 {
+    color: #fff;
+    margin-bottom: 20px;
+}
+
+.settings-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 30px;
+    background: var(--surface-color);
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.settings-form input {
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    padding: 8px 12px;
+    border-radius: 4px;
+    flex: 1;
+    min-width: 200px;
+}
+
+.settings-form button {
+    background: var(--accent-color);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.settings-list {
+    background: var(--surface-color);
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    overflow-x: auto;
+}
+
+.settings-list h3 {
+    margin-top: 0;
+    color: #fff;
+    margin-bottom: 15px;
+}
+
+.settings-list table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.settings-list th, .settings-list td {
+    text-align: left;
+    padding: 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.settings-list th {
+    color: var(--text-dim);
+    font-weight: normal;
+    font-size: 0.9rem;
+}
+
+.settings-list td code {
+    color: #ce9178;
+}
+
+.btn-delete {
+    background: #af5b5e;
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
 }

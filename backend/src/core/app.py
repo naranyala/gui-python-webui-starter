@@ -2,11 +2,10 @@ import logging
 import sys
 import os
 import traceback
-import json
 import signal
 from pathlib import Path
 from webui.webui import Window, set_default_root_folder, wait, get_last_error_message, Browser, exit as webui_exit
-from typing import Optional, Any
+from typing import Optional
 
 from .config import get_config
 from .container import get_container
@@ -130,7 +129,7 @@ def handle_signal(signum, frame):
     logger.info(f"Signal {signum} received. Closing WebUI...")
     try:
         webui_exit()
-    except:
+    except Exception:
         pass
     # Give it a moment to cleanup
     sys.exit(0)

@@ -29,7 +29,7 @@ def safe_get(data: dict, key: str, default: Any = None) -> Any:
 class Result:
     """Result type for operations that can fail."""
     
-    def __init__(self, success: bool, data: Any = None, error: str = None):
+    def __init__(self, success: bool, data: Any = None, error: Optional[str] = None):
         self.success = success
         self.data = data
         self.error = error

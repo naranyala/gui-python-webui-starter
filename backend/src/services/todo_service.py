@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List
 import uuid
 import logging
 from .base import BaseService

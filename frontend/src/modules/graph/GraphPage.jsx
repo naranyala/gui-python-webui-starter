@@ -1,18 +1,19 @@
 import React, { useMemo, useEffect, useState } from 'react';
 import CytoscapeComponent from 'react-cytoscapejs';
-import { resolve, SERVICE_KEYS } from '../../core/index.js';
+import { useService } from '../../core/ServiceProvider.jsx';
+import { GraphService } from '../../services/GraphService';
 
 export default function GraphPage() {
   const [graphData, setGraphData] = useState(null);
+  const graphService = useService(GraphService);
   
   useEffect(() => {
     const loadGraph = async () => {
-      const graphService = resolve(SERVICE_KEYS.GRAPH_SERVICE);
       const data = await graphService.getGraph();
       setGraphData(data);
     };
     loadGraph();
-  }, []);
+  }, [graphService]);
 
   const style = { width: '100%', height: 'calc(100vh - 150px)' };
   const layout = { name: 'cose', animate: true };

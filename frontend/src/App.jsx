@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { resolve, SERVICE_KEYS, getConfig } from './core/index.js';
+import ErrorBoundary from './components/ErrorBoundary.jsx';
+import { ServiceProvider } from './core/ServiceProvider.jsx';
 
 // Import Module Pages
 import MenuPage, { MODULES } from './modules/menu/MenuPage.jsx';
 import DocsPage from './modules/docs/DocsPage.jsx';
 import GraphPage from './modules/graph/GraphPage.jsx';
 import SystemPage from './modules/system/SystemPage.jsx';
+import SettingsPage from './modules/settings/SettingsPage.jsx';
 import TodoPage from './modules/todos/TodoPage.jsx';
 
 import './styles/global.css';
@@ -53,28 +56,33 @@ function App() {
   const currentModule = MODULES.find(m => m.id === view);
 
   return (
-    <div className="app-container">
-      <header className="header">
-        <div className="header-left">
-          <h1 onClick={() => setView('menu')} style={{ cursor: 'pointer' }}>WebUI Starter</h1>
-          {view !== 'menu' && <span className="breadcrumb"> / {currentModule?.title}</span>}
+    <ErrorBoundary>
+      <ServiceProvider>
+        <div className="app-container">
+          <header className="header">
+            <div className="header-left">
+              <h1 onClick={() => setView('menu')} style={{ cursor: 'pointer' }}>WebUI Starter</h1>
+              {view !== 'menu' && <span className="breadcrumb"> / {currentModule?.title}</span>}
+            </div>
+            <nav className="tabs">
+              <button className={view === 'menu' ? 'active' : ''} onClick={() => setView('menu')}>Home</button>
+              {view !== 'menu' && (
+                <button onClick={() => setView('menu')}>Back to Menu</button>
+              )}
+            </nav>
+          </header>
+          
+          <main className="main-content">
+            {view === 'menu' && <MenuPage onSelectModule={setView} />}
+            {view === 'docs' && <DocsPage />}
+            {view === 'graph' && <GraphPage />}
+            {view === 'system' && <SystemPage />}
+            {view === 'settings' && <SettingsPage />}
+            {view === 'todos' && <TodoPage />}
+          </main>
         </div>
-        <nav className="tabs">
-          <button className={view === 'menu' ? 'active' : ''} onClick={() => setView('menu')}>Home</button>
-          {view !== 'menu' && (
-            <button onClick={() => setView('menu')}>Back to Menu</button>
-          )}
-        </nav>
-      </header>
-      
-      <main className="main-content">
-        {view === 'menu' && <MenuPage onSelectModule={setView} />}
-        {view === 'docs' && <DocsPage />}
-        {view === 'graph' && <GraphPage />}
-        {view === 'system' && <SystemPage />}
-        {view === 'todos' && <TodoPage />}
-      </main>
-    </div>
+      </ServiceProvider>
+    </ErrorBoundary>
   );
 }
 

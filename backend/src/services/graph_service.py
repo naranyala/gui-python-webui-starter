@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Any
 from .base import BaseService
 from shared.types import GraphData, GraphNode, GraphEdge
 
@@ -30,13 +30,13 @@ class GraphService(BaseService):
     def get_graph(self) -> Optional[GraphData]:
         return self._graph_data
     
-    def add_node(self, id: str, label: str, data: dict = None) -> GraphNode:
+    def add_node(self, id: str, label: str, data: Optional[dict] = None) -> GraphNode:
         node = GraphNode(id=id, label=label, data=data)
         if self._graph_data:
             self._graph_data.nodes.append(node)
         return node
     
-    def add_edge(self, id: str, source: str, target: str, data: dict = None) -> Optional[GraphEdge]:
+    def add_edge(self, id: str, source: str, target: str, data: Optional[dict] = None) -> Optional[GraphEdge]:
         if not self._graph_data:
             return None
         

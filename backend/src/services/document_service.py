@@ -65,7 +65,7 @@ class DocumentService(BaseService):
         
         return Document(id=doc_id, title=title, content=content, created_at=now, updated_at=now)
     
-    def update(self, doc_id: str, title: str = None, content: str = None) -> Optional[Document]:
+    def update(self, doc_id: str, title: Optional[str] = None, content: Optional[str] = None) -> Optional[Document]:
         doc = self.get_by_id(doc_id)
         if doc:
             now = format_timestamp()

@@ -1,6 +1,7 @@
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional
 
 @dataclass
 class AppConfig:
@@ -39,7 +40,7 @@ class AppConfig:
             port=int(os.getenv("PORT", "3001")),
         )
 
-_config: AppConfig = None
+_config: Optional[AppConfig] = None
 
 def get_config() -> AppConfig:
     global _config

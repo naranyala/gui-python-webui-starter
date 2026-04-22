@@ -5,38 +5,46 @@ import traceback
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from backend.src.core import set_container, DIContainer
+from backend.src.core.config import AppConfig, set_config
+from backend.src.core.app import run, close
+from backend.src.services import DocumentService, SearchService, GraphService, TodoService, SystemService, SettingsService
+from backend.src.api.server import start_api_server
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
-from backend.src.core import get_container, set_container, DIContainer
-from backend.src.core.config import AppConfig, set_config
-from backend.src.core.app import create_window, run, close
-from backend.src.services import DocumentService, SearchService, GraphService, TodoService
-from backend.src.api.server import start_api_server
-
 def configure_services(container: DIContainer):
-# ...
     """Register all services in the container."""
     logger.info("Registering services...")
     
-    container.register(DocumentService)
-    container.register(SearchService)
-    container.register(GraphService)
-    container.register(TodoService)
-    container.register(SystemService)
-    container.register(SettingsService)
+    # Instantiate services (Dependency Injection happens here)
+    # In a more complex app, you'd pass dependencies into the constructors
+    doc_service = DocumentService(container)
+    search_service = SearchService(container)
+    graph_service = GraphService(container)
+    todo_service = TodoService(container)
+    system_service = SystemService(container)
+    settings_service = SettingsService(container)
+    
+    # Register as singletons
+    container.register(DocumentService, doc_service)
+    container.register(SearchService, search_service)
+    container.register(GraphService, graph_service)
+    container.register(TodoService, todo_service)
+    container.register(SystemService, system_service)
+    container.register(SettingsService, settings_service)
     
     logger.info("Initializing services...")
-    for service_cls in [DocumentService, SearchService, GraphService, TodoService, SystemService, SettingsService]:
+    for service in [doc_service, search_service, graph_service, todo_service, system_service, settings_service]:
         try:
-            service = container.resolve(service_cls)
             service.initialize()
-            logger.info(f"Initialized {service_cls.__name__}")
+            logger.info(f"Initialized {service.__class__.__name__}")
         except Exception as e:
-            logger.error(f"Failed to initialize {service_cls.__name__}: {e}")
+            logger.error(f"Failed to initialize {service.__class__.__name__}: {e}")
             raise
 
 def main():

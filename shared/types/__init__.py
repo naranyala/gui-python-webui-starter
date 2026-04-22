@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Any, List, Dict
 
 @dataclass
 class Document:
@@ -13,29 +13,29 @@ class Document:
 class GraphNode:
     id: str
     label: str
-    data: Optional[dict] = None
+    data: Optional[Dict[str, Any]] = None
 
 @dataclass
 class GraphEdge:
     id: str
     source: str
     target: str
-    data: Optional[dict] = None
+    data: Optional[Dict[str, Any]] = None
 
 @dataclass
 class GraphData:
-    nodes: list[GraphNode]
-    edges: list[GraphEdge]
+    nodes: List[GraphNode]
+    edges: List[GraphEdge]
 
 @dataclass
 class ApiResponse:
     success: bool
-    data: Optional[any] = None
+    data: Optional[Any] = None
     error: Optional[str] = None
     message: Optional[str] = None
 
 @dataclass
 class SearchResult:
-    item: any
+    item: Any
     score: float
-    matches: Optional[list] = None
+    matches: Optional[List[Any]] = None

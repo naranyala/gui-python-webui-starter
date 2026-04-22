@@ -1,6 +1,6 @@
-from typing import Optional
+from typing import Optional, Any
 from dataclasses import dataclass
-from shared.types import ApiResponse, Document, GraphData, SearchResult
+from shared.types import ApiResponse
 
 @dataclass
 class RequestContext:
@@ -8,7 +8,7 @@ class RequestContext:
     request_id: str
     user_agent: Optional[str] = None
 
-def create_response(data=None, success: bool = True, error: str = None, message: str = None) -> ApiResponse:
+def create_response(data=None, success: bool = True, error: Optional[str] = None, message: Optional[str] = None) -> ApiResponse:
     """Helper to create API responses."""
     return ApiResponse(
         success=success,
@@ -17,10 +17,10 @@ def create_response(data=None, success: bool = True, error: str = None, message:
         message=message
     )
 
-def success_response(data, message: str = None) -> ApiResponse:
+def success_response(data, message: Optional[str] = None) -> ApiResponse:
     return create_response(data=data, success=True, message=message)
 
-def error_response(error: str, message: str = None) -> ApiResponse:
+def error_response(error: str, message: Optional[str] = None) -> ApiResponse:
     return create_response(success=False, error=error, message=message)
 
 __all__ = [

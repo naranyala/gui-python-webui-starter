@@ -1,7 +1,9 @@
-def format_response(success: bool, data: any = None, error: str = None):
-    """Standard API response format."""
+from typing import Any, Optional
+
+def format_response(success: bool, data: Any = None, error: Optional[str] = None, message: Optional[str] = None):
     return {
         "success": success,
         "data": data,
-        "error": error
+        "error": error,
+        "message": message
     }
