@@ -1,40 +1,22 @@
 import React, { createContext, useContext, useMemo } from 'react';
-import { GraphService } from '../services/GraphService';
-import { DocumentService } from '../services/DocumentService';
-import { TodoService } from '../services/TodoService';
-import { BaseService } from '../services/base';
+import { initializeServices, resolve, SERVICE_KEYS } from './index.js';
 
 // Create the Context
 const ServiceContext = createContext(null);
 
 /**
  * ServiceProvider provides a single source of truth for services.
- * It mimics the Backend DIContainer by instantiating services once
- * and making them available via React Context.
+ * It integrates with the core DI container.
  */
 export function ServiceProvider({ children }) {
   const services = useMemo(() => {
-    // In a real app, we'd resolve these from a config or a registry
-    // For now, we instantiate the core services.
-    const container = {
-        resolve: (key) => {
-            // Minimal mock for internal service dependencies if needed
-            return servicesMap[key];
-        }
+    // Initialize the core DI container
+    initializeServices();
+    
+    // We return a proxy that allows useService to resolve via the core container
+    return {
+      resolve: (key) => resolve(key)
     };
-
-    const servicesMap = {
-      GraphService: new GraphService(container),
-      DocumentService: new DocumentService(container),
-      TodoService: new TodoService(container),
-    };
-
-    // Initialize all services
-    Object.values(servicesMap).forEach(s => {
-        if (s instanceof BaseService) s.initialize();
-    });
-
-    return servicesMap;
   }, []);
 
   return (
@@ -46,18 +28,32 @@ export function ServiceProvider({ children }) {
 
 /**
  * useService is the frontend equivalent of backend's container.resolve()
- * It retrieves a service instance from the Context.
+ * It retrieves a service instance from the Core DI system.
  */
 export function useService(ServiceClass) {
-  const services = useContext(ServiceContext);
-  if (!services) {
+  const context = useContext(ServiceContext);
+  if (!context) {
     throw new Error('useService must be used within a ServiceProvider');
   }
   
-  const service = services[ServiceClass.name];
-  if (!service) {
-    throw new Error(`Service ${ServiceClass.name} not found in ServiceProvider`);
+  // 1. If it's already a key from SERVICE_KEYS, use it
+  if (typeof ServiceClass === 'symbol') {
+    return context.resolve(ServiceClass);
   }
-  
-  return service;
+
+  // 2. Map Class Name to SERVICE_KEY
+  const className = ServiceClass.name;
+  const key = Object.entries(SERVICE_KEYS).find(([k, v]) => k.endsWith('_SERVICE') && k.startsWith(className.toUpperCase()))?.[1];
+
+  if (key) {
+    return context.resolve(key);
+  }
+
+  // 3. Fallback to resolving by class name directly
+  try {
+    return context.resolve(className);
+  } catch (e) {
+    console.error(`[useService] Failed to resolve service for: ${className}`, e);
+    throw e;
+  }
 }

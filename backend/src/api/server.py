@@ -7,7 +7,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from threading import Thread
 
 from ..core.container import get_container
-from ..services import DocumentService, TodoService, GraphService, SystemService, SettingsService
+from ..core.database import get_db
+from ..services import (
+    DocumentService, 
+    TodoService, 
+    GraphService, 
+    SystemService, 
+    SettingsService,
+    DatabaseService
+)
 from ..utils.response import format_response
 
 logger = logging.getLogger(__name__)
@@ -24,6 +32,73 @@ app.add_middleware(
 @app.get("/api/health")
 async def health():
     return {"status": "ok"}
+
+@app.get("/api/tables")
+async def get_tables():
+    db = get_db()
+    tables = db.get_tables_info()
+    return format_response(True, tables)
+
+@app.get("/api/tables/{table_name}/data")
+async def get_table_data(table_name: str):
+    try:
+        db = get_db()
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        # Basic SQL injection protection: table names are validated against sqlite_master
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
+        if not cursor.fetchone():
+            return format_response(False, None, f"Table {table_name} not found")
+        
+        cursor.execute(f"SELECT * FROM {table_name}")
+        rows = cursor.fetchall()
+        # Convert sqlite3.Row to dict
+        data = [dict(row) for row in rows]
+        return format_response(True, data)
+    except Exception as e:
+        return format_response(False, None, str(e))
+
+@app.post("/api/tables/{table_name}/insert")
+async def insert_table_data(table_name: str, payload: dict):
+    try:
+        db = get_db()
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
+        if not cursor.fetchone():
+            return format_response(False, None, f"Table {table_name} not found")
+        
+        cols = ", ".join(payload.keys())
+        placeholders = ", ".join(["?" for _ in payload])
+        sql = f"INSERT INTO {table_name} ({cols}) VALUES ({placeholders})"
+        cursor.execute(sql, list(payload.values()))
+        conn.commit()
+        return format_response(True, {"id": cursor.lastrowid}, "Record inserted")
+    except Exception as e:
+        return format_response(False, None, str(e))
+
+@app.delete("/api/tables/{table_name}/delete/{row_id}")
+async def delete_table_data(table_name: str, row_id: str):
+    try:
+        db = get_db()
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
+        if not cursor.fetchone():
+            return format_response(False, None, f"Table {table_name} not found")
+        
+        # Try to find the primary key column
+        cursor.execute(f"PRAGMA table_info({table_name})")
+        columns = cursor.fetchall()
+        pk_col = next((c['name'] for c in columns if c['pk']), 'id')
+        
+        cursor.execute(f"DELETE FROM {table_name} WHERE {pk_col} = ?", (row_id,))
+        conn.commit()
+        return format_response(True, None, "Record deleted")
+    except Exception as e:
+        return format_response(False, None, str(e))
 
 @app.get("/api/documents")
 async def get_docs():

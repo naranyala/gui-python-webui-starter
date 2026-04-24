@@ -1,15 +1,18 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { resolve, SERVICE_KEYS, getConfig } from './core/index.js';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
+import NotificationToast from './components/NotificationToast.jsx';
 import { ServiceProvider } from './core/ServiceProvider.jsx';
 
 // Import Module Pages
-import MenuPage, { MODULES } from './modules/menu/MenuPage.jsx';
+import MenuPage from './modules/menu/MenuPage.jsx';
+import { MODULES } from './shared/constants.js';
 import DocsPage from './modules/docs/DocsPage.jsx';
 import GraphPage from './modules/graph/GraphPage.jsx';
 import SystemPage from './modules/system/SystemPage.jsx';
 import SettingsPage from './modules/settings/SettingsPage.jsx';
 import TodoPage from './modules/todos/TodoPage.jsx';
+import TableCrudPage from './pages/TableCrudPage.jsx';
 
 import './styles/global.css';
 
@@ -79,7 +82,11 @@ function App() {
             {view === 'system' && <SystemPage />}
             {view === 'settings' && <SettingsPage />}
             {view === 'todos' && <TodoPage />}
+            {!['menu', 'docs', 'graph', 'system', 'settings', 'todos'].includes(view) && (
+              <TableCrudPage tableName={view} />
+            )}
           </main>
+          <NotificationToast />
         </div>
       </ServiceProvider>
     </ErrorBoundary>

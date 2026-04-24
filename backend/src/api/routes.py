@@ -1,6 +1,14 @@
 from typing import Optional
 from ..core.container import get_container
-from ..services import DocumentService, SearchService, GraphService, TodoService, SystemService, SettingsService
+from ..services import (
+    DocumentService, 
+    SearchService, 
+    GraphService, 
+    TodoService, 
+    SystemService, 
+    SettingsService, 
+    DatabaseService
+)
 from ..api.dependencies import success_response, error_response
 from .schemas import (
     DocumentCreate, DocumentUpdate, DocumentResponse,

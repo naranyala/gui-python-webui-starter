@@ -13,7 +13,19 @@ VENV_PYTHON="$PROJECT_ROOT/.venv/bin/python"
 
 function build_frontend() {
     echo "Building frontend (Rspack)..."
-    (cd "$FRONTEND_DIR" && npm run build)
+    (cd "$FRONTEND_DIR"
+        # Install dependencies if node_modules is missing or empty
+        if [ ! -d "node_modules" ] || [ -z "$(ls -A node_modules 2>/dev/null)" ]; then
+            if [ -f "bun.lock" ]; then
+                echo "Installing frontend dependencies with bun..."
+                bun install
+            else
+                echo "Installing frontend dependencies with npm..."
+                npm ci
+            fi
+        fi
+        npm run build
+    )
     
     echo "Distributing frontend build to backend..."
     mkdir -p "$BACKEND_WEB_DIR"

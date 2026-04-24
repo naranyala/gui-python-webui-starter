@@ -1,13 +1,18 @@
 import React, { useEffect, useState } from 'react';
+import { useService } from '../../hooks/useService.js';
+import { SERVICE_KEYS } from '../../core/index.js';
 
 export default function SystemPage() {
   const [stats, setStats] = useState(null);
   const [error, setError] = useState(null);
+  const [rustAnalysis, setRustAnalysis] = useState(null);
+  const [analyzing, setAnalyzing] = useState(false);
+
+  const apiClient = useService(SERVICE_KEYS.API_CLIENT);
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('/api/system');
-      const data = await response.json();
+      const data = await apiClient.get('/system');
       if (data.success) {
         setStats(data.data);
         setError(null);
@@ -16,6 +21,20 @@ export default function SystemPage() {
       }
     } catch (e) {
       setError('Failed to fetch system stats');
+    }
+  };
+
+  const runRustAnalysis = async () => {
+    setAnalyzing(true);
+    try {
+      const data = await apiClient.get('/rust/analyze');
+      if (data.success) {
+        setRustAnalysis(data.data);
+      }
+    } catch (e) {
+      console.error('Rust analysis failed', e);
+    } finally {
+      setAnalyzing(false);
     }
   };
 
@@ -72,6 +91,44 @@ export default function SystemPage() {
           <li><strong>Version:</strong> {stats.os.version}</li>
           <li><strong>Machine:</strong> {stats.os.machine}</li>
         </ul>
+      </div>
+
+      <div className="rust-demo" style={{ marginTop: '30px', padding: '20px', background: '#2d2d2d', borderRadius: '12px', border: '1px solid #444' }}>
+        <h3>🦀 Rust Performance Demo</h3>
+        <p style={{ color: '#9d9d9d', fontSize: '14px', marginBottom: '15px' }}>
+          Use a Rust-written CLI to analyze the current project directory recursively.
+        </p>
+        <button 
+          className="action-button" 
+          onClick={runRustAnalysis} 
+          disabled={analyzing}
+          style={{ padding: '10px 20px', cursor: 'pointer', background: '#f97316', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: '600' }}
+        >
+          {analyzing ? 'Analyzing...' : 'Analyze Project Folder'}
+        </button>
+
+        {rustAnalysis && (
+          <div style={{ marginTop: '20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+            <div className="stat-card">
+              <span className="label">Total Files</span>
+              <span className="value">{rustAnalysis.total_files}</span>
+            </div>
+            <div className="stat-card">
+              <span className="label">Total Size</span>
+              <span className="value">{(rustAnalysis.total_size / 1024**2).toFixed(2)} MB</span>
+            </div>
+            <div style={{ gridColumn: 'span 2' }}>
+              <span className="label" style={{ display: 'block', marginBottom: '10px' }}>Top 5 Largest Files:</span>
+              <ul style={{ listStyle: 'none', padding: 0, fontSize: '13px', color: '#ccc' }}>
+                {rustAnalysis.largest_files.map((f, i) => (
+                  <li key={i} style={{ marginBottom: '5px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <strong>{(f.size / 1024**2).toFixed(2)} MB</strong> - {f.path}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

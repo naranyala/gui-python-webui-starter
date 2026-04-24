@@ -4,7 +4,7 @@ import logging
 from .base import BaseService
 from shared.types import Document
 from shared.utils import format_timestamp
-from ..core.database import get_db
+from ..core.bridge import api_action
 
 logger = logging.getLogger(__name__)
 
@@ -13,12 +13,13 @@ class DocumentService(BaseService):
     
     def __init__(self, container):
         super().__init__(container)
-        self._db = get_db()
+        self._db = container.resolve("db")
     
     def on_initialize(self) -> None:
         self._db.connect()
         logger.info("DocumentService initialized with SQLite")
     
+    @api_action
     def get_all(self) -> List[Document]:
         conn = self._db.get_connection()
         cursor = conn.cursor()
@@ -35,6 +36,7 @@ class DocumentService(BaseService):
             ) for row in rows
         ]
     
+    @api_action
     def get_by_id(self, doc_id: str) -> Optional[Document]:
         conn = self._db.get_connection()
         cursor = conn.cursor()
@@ -51,6 +53,7 @@ class DocumentService(BaseService):
             )
         return None
     
+    @api_action
     def create(self, title: str, content: str) -> Document:
         doc_id = str(uuid.uuid4())[:8]
         now = format_timestamp()
@@ -65,6 +68,7 @@ class DocumentService(BaseService):
         
         return Document(id=doc_id, title=title, content=content, created_at=now, updated_at=now)
     
+    @api_action
     def update(self, doc_id: str, title: Optional[str] = None, content: Optional[str] = None) -> Optional[Document]:
         doc = self.get_by_id(doc_id)
         if doc:
@@ -85,6 +89,7 @@ class DocumentService(BaseService):
             doc.updated_at = now
         return doc
     
+    @api_action
     def delete(self, doc_id: str) -> bool:
         conn = self._db.get_connection()
         cursor = conn.cursor()

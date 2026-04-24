@@ -8,7 +8,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from backend.src.core import set_container, DIContainer
 from backend.src.core.config import AppConfig, set_config
 from backend.src.core.app import run, close
-from backend.src.services import DocumentService, SearchService, GraphService, TodoService, SystemService, SettingsService
+from backend.src.core.database import Database
+from backend.src.services import DocumentService, SearchService, GraphService, TodoService, SystemService, SettingsService, RustCliService, SystemIntegrationService
 from backend.src.api.server import start_api_server
 
 logging.basicConfig(
@@ -21,25 +22,32 @@ def configure_services(container: DIContainer):
     """Register all services in the container."""
     logger.info("Registering services...")
     
-    # Instantiate services (Dependency Injection happens here)
-    # In a more complex app, you'd pass dependencies into the constructors
+    # 1. Register Core Infrastructure
+    db = Database()
+    container.register(Database, db, alias="db")
+    
+    # 2. Instantiate services (Dependency Injection happens here)
     doc_service = DocumentService(container)
     search_service = SearchService(container)
     graph_service = GraphService(container)
     todo_service = TodoService(container)
     system_service = SystemService(container)
     settings_service = SettingsService(container)
+    rust_service = RustCliService(container)
+    sys_int_service = SystemIntegrationService(container)
     
-    # Register as singletons
-    container.register(DocumentService, doc_service)
-    container.register(SearchService, search_service)
-    container.register(GraphService, graph_service)
-    container.register(TodoService, todo_service)
-    container.register(SystemService, system_service)
-    container.register(SettingsService, settings_service)
+    # Register as singletons with aliases for better modularity
+    container.register(DocumentService, doc_service, alias="docs_service")
+    container.register(SearchService, search_service, alias="search_service")
+    container.register(GraphService, graph_service, alias="graph_service")
+    container.register(TodoService, todo_service, alias="todo_service")
+    container.register(SystemService, system_service, alias="system_service")
+    container.register(SettingsService, settings_service, alias="settings_service")
+    container.register(RustCliService, rust_service, alias="rust_service")
+    container.register(SystemIntegrationService, sys_int_service, alias="sys_int_service")
     
     logger.info("Initializing services...")
-    for service in [doc_service, search_service, graph_service, todo_service, system_service, settings_service]:
+    for service in [doc_service, search_service, graph_service, todo_service, system_service, settings_service, rust_service, sys_int_service]:
         try:
             service.initialize()
             logger.info(f"Initialized {service.__class__.__name__}")

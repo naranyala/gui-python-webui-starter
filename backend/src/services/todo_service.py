@@ -2,8 +2,8 @@ from typing import List
 import uuid
 import logging
 from .base import BaseService
-from ..core.database import get_db
 from shared.utils import format_timestamp
+from ..core.bridge import api_action
 
 logger = logging.getLogger(__name__)
 
@@ -12,12 +12,13 @@ class TodoService(BaseService):
     
     def __init__(self, container):
         super().__init__(container)
-        self._db = get_db()
+        self._db = container.resolve("db")
     
     def on_initialize(self) -> None:
         self._db.connect()
         logger.info("TodoService initialized")
     
+    @api_action
     def get_all(self) -> List[dict]:
         conn = self._db.get_connection()
         cursor = conn.cursor()
@@ -25,6 +26,7 @@ class TodoService(BaseService):
         rows = cursor.fetchall()
         return [dict(row) for row in rows]
     
+    @api_action
     def create(self, task: str) -> dict:
         todo_id = str(uuid.uuid4())[:8]
         now = format_timestamp()
@@ -37,6 +39,7 @@ class TodoService(BaseService):
         conn.commit()
         return {"id": todo_id, "task": task, "completed": 0, "created_at": now}
     
+    @api_action
     def toggle(self, todo_id: str) -> bool:
         conn = self._db.get_connection()
         cursor = conn.cursor()
@@ -44,6 +47,7 @@ class TodoService(BaseService):
         conn.commit()
         return cursor.rowcount > 0
 
+    @api_action
     def update_task(self, todo_id: str, task: str) -> bool:
         conn = self._db.get_connection()
         cursor = conn.cursor()
@@ -51,6 +55,7 @@ class TodoService(BaseService):
         conn.commit()
         return cursor.rowcount > 0
 
+    @api_action
     def delete(self, todo_id: str) -> bool:
         conn = self._db.get_connection()
         cursor = conn.cursor()
@@ -58,6 +63,7 @@ class TodoService(BaseService):
         conn.commit()
         return cursor.rowcount > 0
 
+    @api_action
     def clear_completed(self) -> int:
         conn = self._db.get_connection()
         cursor = conn.cursor()

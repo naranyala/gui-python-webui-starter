@@ -2,6 +2,18 @@ import { getConfig } from '../core/config.js';
 import { z } from 'zod';
 
 /**
+ * Custom Error class for API failures
+ */
+export class ApiError extends Error {
+  constructor(message, error = null, data = null) {
+    super(message);
+    this.name = 'ApiError';
+    this.error = error;
+    this.data = data;
+  }
+}
+
+/**
  * Base Service class with DI support
  */
 export class BaseService {
@@ -29,144 +41,80 @@ export class BaseService {
 }
 
 /**
- * API Client for making HTTP or Bridge requests
+ * Bridge Client for symmetrical Frontend-Backend communication.
+ * Calls are made using the 'module:action' pattern.
  */
 export class ApiClient extends BaseService {
   constructor(container) {
     super(container);
   }
 
-  async requestWebUI(endpoint, options = {}) {
-    console.log(`[ApiClient] WebUI Request: ${endpoint}`, options);
-    
-    // Map REST-like endpoints to WebUI function names
-    const mapping = {
-      '/documents': 'get_documents',
-      '/documents/': 'get_document_by_id',
-      'POST /documents': 'create_document',
-      '/search': 'search_documents',
-      '/todos': 'get_todos',
-      '/graph': 'get_graph',
-      '/system': 'get_system_stats',
-      '/settings': 'get_settings',
-      'POST /settings': 'update_setting',
-      'POST /todos': 'create_todo',
-      '/todos/': 'toggle_todo',
-      'DELETE /todos/': 'delete_todo',
-      'DELETE /todos/completed': 'clear_completed_todos',
-    };
+  /**
+   * The core communication method.
+   * @param {string} module - The backend module name (e.g., 'docs', 'todos')
+   * @param {string} action - The action to perform (e.g., 'get_all', 'create')
+   * @param {any} params - Arguments to pass to the backend
+   */
+  async call(module, action, params = null) {
+    const cmd = `${module}:${action}`;
+    console.log(`%c[Bridge Call] ${cmd}`, 'color: #3b82f6; font-weight: bold', { params });
 
-    try {
-      let funcName = mapping[endpoint];
-      let arg = null;
-
-      // Handle search with query params
-      if (endpoint.startsWith('/search')) {
-          funcName = mapping['/search'];
-          const url = new URL(endpoint, 'http://localhost');
-          arg = url.searchParams.get('q');
+    if (window.webui) {
+      try {
+        const result = await window.webui.call(cmd, params);
+        const data = JSON.parse(result);
+        
+        if (!data.success) {
+          const error = new ApiError(data.error || 'Bridge request failed');
+          this._notifyError(error);
+          console.error(`%c[Bridge Error] ${cmd}: ${data.error}`, 'color: #ef4444');
+          throw error;
+        }
+        
+        return data.data;
+      } catch (error) {
+        if (!(error instanceof ApiError)) {
+          this._notifyError(error);
+        }
+        console.error(`%c[Bridge Exception] ${cmd}:`, 'color: #ef4444', error);
+        throw error;
       }
-
-      // Handle ID in URL
-      if (!funcName && endpoint.startsWith('/documents/')) {
-          funcName = mapping['/documents/'];
-          arg = endpoint.split('/').pop();
-      }
-
-      // Handle ID in URL for todos toggle and delete
-      if (!funcName && endpoint.startsWith('/todos/')) {
-          const parts = endpoint.split('/');
-          if (parts.length === 4 && parts[3] === 'toggle') {
-              funcName = mapping['/todos/'];
-              arg = parts[2];
-          } else {
-              funcName = mapping['DELETE /todos/'];
-              arg = parts[2];
-          }
-      }
-
-      // Handle POST requests
-      if (options.method === 'POST') {
-          if (endpoint === '/documents') funcName = mapping['POST /documents'];
-          if (endpoint === '/todos') funcName = mapping['POST /todos'];
-          arg = options.body;
-      }
-
-      if (funcName) {
-          const result = await window.webui.call(funcName, arg);
-          return JSON.parse(result);
-      }
-      
-      throw new Error(`Unmapped WebUI endpoint: ${endpoint}`);
-    } catch (error) {
-      console.error(`[ApiClient] WebUI call failed: ${endpoint}`, error);
-      throw error;
+    } else {
+      // Fallback to REST if window.webui is not available
+      return this._fallbackRest(module, action, params);
     }
   }
 
-  async request(endpoint, options = {}) {
+  async _fallbackRest(module, action, params) {
     const config = getConfig();
-    const mode = config.commMode;
-
-    // Use WebUI Bridge if mode is BRIDGE and we are in WebUI
-    if (mode === 'BRIDGE' && window.webui) {
-      return this.requestWebUI(endpoint, options);
-    }
-
-    // Fallback to standard fetch (FastAPI/REST)
-    const url = `${config.apiBase}${endpoint}`;
-    const fetchConfig = {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    };
-
-    try {
-      const response = await fetch(url, fetchConfig);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      
-      // Basic validation: Ensure we have a success flag
-      if (typeof data !== 'object' || data === null || !('success' in data)) {
-        throw new Error('Invalid API response format: missing "success" flag');
-      }
-
-      return data;
-    } catch (error) {
-      console.error(`[ApiClient] Request failed: ${endpoint}`, error);
-      throw error;
-    }
-  }
-
-  get(endpoint, params = {}) {
-    const query = new URLSearchParams(params).toString();
-    const url = query ? `${endpoint}?${query}` : endpoint;
-    return this.request(url);
-  }
-
-  post(endpoint, data) {
-    return this.request(endpoint, {
+    const url = `${config.apiBase}/${module}/${action}`;
+    const response = await fetch(url, {
       method: 'POST',
-      body: typeof data === 'string' ? data : JSON.stringify(data),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ params })
     });
+    const data = await response.json();
+    if (!data.success) throw new Error(data.error);
+    return data.data;
   }
 
-  put(endpoint, data) {
-    return this.request(endpoint, {
-      method: 'PUT',
-      body: typeof data === 'string' ? data : JSON.stringify(data),
-    });
+  _notifyError(error) {
+    try {
+      const notificationService = this.container.resolve(Symbol.for('NotificationService'));
+      if (notificationService) {
+        const message = error instanceof ApiError ? error.message : error.message || 'An unexpected error occurred';
+        notificationService.error(message);
+      }
+    } catch (e) {
+      // Notification service might not be registered yet
+    }
   }
 
-  delete(endpoint) {
-    return this.request(endpoint, { method: 'DELETE' });
-  }
+  // Convenience wrappers for common patterns
+  get(module, action, params) { return this.call(module, action, params); }
+  post(module, action, params) { return this.call(module, action, params); }
+  put(module, action, params) { return this.call(module, action, params); }
+  delete(module, action, params) { return this.call(module, action, params); }
 }
 
 export default { BaseService, ApiClient };

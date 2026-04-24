@@ -24,6 +24,14 @@ export const GRAPH_EDGE_WIDTH = 2;
 export const DEFAULT_WINDOW_WIDTH = 1200;
 export const DEFAULT_WINDOW_HEIGHT = 800;
 
+export const MODULES = [
+  { id: 'docs', title: 'Documentation', icon: '📄', description: 'View and search markdown documents' },
+  { id: 'graph', title: 'Interactive Graph', icon: '🕸️', description: 'Explore relationships in a graph view' },
+  { id: 'system', title: 'System Monitor', icon: '🖥️', description: 'Real-time CPU and memory usage' },
+  { id: 'settings', title: 'App Settings', icon: '⚙️', description: 'Configure application preferences' },
+  { id: 'todos', title: 'Todo List', icon: '✅', description: 'Simple SQLite-backed task manager' },
+];
+
 // Event names
 export const EVENTS = {
   DOCUMENT_SELECTED: 'document:selected',
@@ -50,4 +58,5 @@ export default {
   DEFAULT_WINDOW_WIDTH,
   DEFAULT_WINDOW_HEIGHT,
   EVENTS,
+  MODULES,
 };

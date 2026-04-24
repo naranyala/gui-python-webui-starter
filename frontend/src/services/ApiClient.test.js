@@ -1,40 +1,58 @@
-import { describe, expect, it, mock, beforeEach, afterEach } from "bun:test";
+import { describe, expect, it, mock, beforeEach } from "bun:test";
 import { ApiClient } from "./base.js";
 
-describe("ApiClient", () => {
+describe("ApiClient (BridgeClient)", () => {
   let client;
-  let mockContainer = {};
+  let mockContainer = {
+    resolve: mock()
+  };
 
   beforeEach(() => {
-    client = new ApiClient(mockContainer, "/test-api");
-    // Mock global fetch
-    global.fetch = mock(() => 
-      Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({ data: "ok" })
-      })
-    );
-    // Ensure webui is not present for fetch tests
-    delete window.webui;
-  });
-
-  it("should make a GET request with fetch", async () => {
-    const response = await client.get("/docs");
+    client = new ApiClient(mockContainer);
     
-    expect(global.fetch).toHaveBeenCalled();
-    const [url, config] = global.fetch.mock.calls[0];
-    expect(url).toBe("/test-api/docs");
-    expect(response.data).toBe("ok");
-  });
-
-  it("should use webui.call if window.webui is present", async () => {
-    window.webui = {
-      call: mock(() => Promise.resolve(JSON.stringify({ test: "webui" })))
+    // Mock window.webui.call
+    global.window = {
+      webui: {
+        call: mock()
+      }
     };
+  });
 
-    const response = await client.get("/documents");
+  it("should format module:action correctly", async () => {
+    const mockResponse = JSON.stringify({
+      success: true,
+      data: { items: [1, 2, 3] }
+    });
     
-    expect(window.webui.call).toHaveBeenCalledWith("get_documents", null);
-    expect(response.data.test).toBe("webui");
+    window.webui.call.mockResolvedValue(mockResponse);
+
+    const result = await client.call('docs', 'get_all', { filter: 'all' });
+
+    expect(window.webui.call).toHaveBeenCalledWith('docs:get_all', { filter: 'all' });
+    expect(result).toEqual({ items: [1, 2, 3] });
+  });
+
+  it("should handle backend errors via success flag", async () => {
+    const mockErrorResponse = JSON.stringify({
+      success: false,
+      error: 'Permission denied'
+    });
+    
+    window.webui.call.mockResolvedValue(mockErrorResponse);
+
+    await expect(client.call('sys', 'delete_root')).rejects.toThrow('Permission denied');
+  });
+
+  it("should use the same bridge call for all HTTP verb helpers", async () => {
+    window.webui.call.mockResolvedValue(JSON.stringify({ success: true, data: {} }));
+    
+    await client.get('docs', 'list');
+    expect(window.webui.call).toHaveBeenCalledWith('docs:list', undefined);
+    
+    await client.post('todos', 'add', { text: 'hi' });
+    expect(window.webui.call).toHaveBeenCalledWith('todos:add', { text: 'hi' });
+    
+    await client.delete('files', 'remove', 'id123');
+    expect(window.webui.call).toHaveBeenCalledWith('files:remove', 'id123');
   });
 });

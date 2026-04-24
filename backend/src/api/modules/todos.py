@@ -1,51 +1,35 @@
 import json
 import logging
 from typing import Any
-from ...services import TodoService
-from ...utils.response import format_response
+from ...utils.response import format_response, api_handler
 
 logger = logging.getLogger(__name__)
 
 def setup_todos_api(window, container):
-    todo_service = container.resolve(TodoService)
+    todo_service = container.resolve("todo_service")
 
+    @api_handler
     def get_todos(e: Any):
-        try:
-            data = todo_service.get_all()
-            return json.dumps(format_response(True, data))
-        except Exception as ex:
-            return json.dumps(format_response(False, error=str(ex)))
+        return todo_service.get_all()
 
+    @api_handler
     def create_todo(e: Any):
-        try:
-            task = e.get_string()
-            data = todo_service.create(task)
-            return json.dumps(format_response(True, data))
-        except Exception as ex:
-            return json.dumps(format_response(False, error=str(ex)))
+        task = e.get_string()
+        return todo_service.create(task)
 
+    @api_handler
     def toggle_todo(e: Any):
-        try:
-            todo_id = e.get_string()
-            success = todo_service.toggle(todo_id)
-            return json.dumps(format_response(success))
-        except Exception as ex:
-            return json.dumps(format_response(False, error=str(ex)))
+        todo_id = e.get_string()
+        return todo_service.toggle(todo_id)
 
+    @api_handler
     def delete_todo(e: Any):
-        try:
-            todo_id = e.get_string()
-            success = todo_service.delete(todo_id)
-            return json.dumps(format_response(success))
-        except Exception as ex:
-            return json.dumps(format_response(False, error=str(ex)))
+        todo_id = e.get_string()
+        return todo_service.delete(todo_id)
 
+    @api_handler
     def clear_completed_todos(e: Any):
-        try:
-            count = todo_service.clear_completed()
-            return json.dumps(format_response(True, count))
-        except Exception as ex:
-            return json.dumps(format_response(False, error=str(ex)))
+        return todo_service.clear_completed()
 
     window.bind("get_todos", get_todos)
     window.bind("create_todo", create_todo)

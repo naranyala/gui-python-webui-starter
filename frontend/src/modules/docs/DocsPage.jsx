@@ -40,14 +40,19 @@ export default function DocsPage() {
     fetchDocs();
   }, []);
 
-  const filteredDocs = useMemo(() => {
-    if (!search) return docs;
-    const lower = search.toLowerCase();
-    return docs.filter(d => 
-      d.title.toLowerCase().includes(lower) || 
-      d.content.toLowerCase().includes(lower)
-    );
-  }, [docs, search]);
+   const filteredDocs = useMemo(() => {
+     // Filter out documents with empty or whitespace-only titles
+     const validDocs = docs.filter(doc => 
+       doc.title && doc.title.trim().length > 0
+     );
+     
+     if (!search) return validDocs;
+     const lower = search.toLowerCase();
+     return validDocs.filter(d => 
+       d.title.toLowerCase().includes(lower) || 
+       d.content.toLowerCase().includes(lower)
+     );
+   }, [docs, search]);
 
   if (loading) return (
     <div style={{ padding: '40px', color: '#9d9d9d', textAlign: 'center' }}>

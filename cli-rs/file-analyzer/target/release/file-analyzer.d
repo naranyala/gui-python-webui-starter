@@ -1,0 +1,1 @@
+/media/naranyala/Data/projects-remote/gui-python-webui-starter/cli-rs/file-analyzer/target/release/file-analyzer: /media/naranyala/Data/projects-remote/gui-python-webui-starter/cli-rs/file-analyzer/src/main.rs

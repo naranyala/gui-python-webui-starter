@@ -7,6 +7,9 @@ export { DocumentService } from './DocumentService.js';
 export { SearchService } from './SearchService.js';
 export { GraphService } from './GraphService.js';
 export { TodoService } from './TodoService.js';
+export { NotificationService } from './NotificationService.js';
+export { DatabaseService } from './DatabaseService.js';
+export { TableCrudService } from './TableCrudService.js';
 
 export default {
   BaseService,
@@ -15,4 +18,7 @@ export default {
   SearchService,
   GraphService,
   TodoService,
+  NotificationService,
+  DatabaseService,
+  TableCrudService,
 };

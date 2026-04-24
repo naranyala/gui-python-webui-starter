@@ -3,18 +3,19 @@ import sys
 import os
 import traceback
 import signal
+import threading
 from pathlib import Path
 from webui.webui import Window, set_default_root_folder, wait, get_last_error_message, Browser, exit as webui_exit
 from typing import Optional
 
 from .config import get_config
 from .container import get_container
+from .tasks import TaskManager
+from .bridge import Bridge, init_bridge, get_bridge
+from shared.api import APIModules
 
-# Import API Module setup functions
-from ..api.modules.docs import setup_docs_api
-from ..api.modules.todos import setup_todos_api
-from ..api.modules.search import setup_search_api
-from ..api.modules.graph import setup_graph_api
+# The separate API module setup functions are now deprecated in favor of bind_service
+# but we keep them if they have complex custom logic.
 
 logging.basicConfig(
     level=logging.INFO,
@@ -28,13 +29,38 @@ def setup_bindings(window: Window):
     """Register Python functions to be called from the frontend."""
     container = get_container()
     
-    # Initialize separate API modules
-    setup_docs_api(window, container)
-    setup_todos_api(window, container)
-    setup_search_api(window, container)
-    setup_graph_api(window, container)
+    # 1. Initialize the Bridge
+    bridge = init_bridge(window)
     
-    logger.info("All API modules registered successfully")
+    # 2. Initialize Task Manager for concurrency
+    task_manager = TaskManager()
+    task_manager.set_ws_callback(lambda tid, res: logger.info(f"WebSocket Push -> Task {tid}: {res}"))
+    container.register(TaskManager, task_manager, alias="task_manager")
+    
+    # 3. Register the bridge itself in container for service access
+    container.register(Bridge, bridge, alias="bridge")
+    
+    # 4. Bind Services symmetrically using the APIManifest
+    # Each service is bound to a module name. Methods marked with @api_action are exposed.
+    services_to_bind = [
+        ("docs_service", APIModules.DOCS),
+        ("todo_service", APIModules.TODOS),
+        ("search_service", APIModules.SEARCH),
+        ("graph_service", APIModules.GRAPH),
+        ("rust_service", APIModules.RUST),
+        ("sys_int_service", APIModules.SYSTEM),
+        ("settings_service", APIModules.SETTINGS),
+        ("db_service", "db"),
+    ]
+    
+    for service_alias, module_name in services_to_bind:
+        try:
+            service = container.resolve(service_alias)
+            bridge.bind_service(service, module_name)
+        except Exception as e:
+            logger.error(f"Failed to bind service {service_alias} to {module_name}: {e}")
+    
+    logger.info("All services registered symmetrically via Bridge")
 
 def get_resource_path() -> Path:
     """Get the path to the web assets, supporting various bundlers."""
@@ -95,8 +121,9 @@ def create_window(
             else:
                 _window.set_size(config.window_width, config.window_height)
             
-            # Try specific browser first, then default
-            if not _window.show_browser(url, browser):
+            # Prefer Chromium/Chrome-like browsers in debug mode, fallback to default if needed
+            if not _window.show_browser(url, Browser.Chromium):
+                logger.info("Chromium not available in debug mode, falling back to default browser")
                 _window.show(url)
         else:
             _window.set_root_folder(str(dist_path))
@@ -106,9 +133,10 @@ def create_window(
                 _window.set_size(config.window_width, config.window_height)
             
             logger.info("Launching GUI window...")
-            # Use show() directly as it's more reliable for local files
-            # and prevents the double-window bug
-            _window.show("index.html")
+            # Prefer Chromium/Chrome-like browsers, fallback to default if needed
+            if not _window.show_browser("index.html", Browser.Chromium):
+                logger.info("Chromium not available, falling back to default browser")
+                _window.show("index.html")
         
         logger.info("Window created successfully")
         return _window
@@ -142,7 +170,18 @@ def run():
     
     logger.info("Starting application...")
     try:
-        create_window()
+        window = create_window()
+        
+        # Start System Tray in a background thread
+        container = get_container()
+        try:
+            sys_int = container.resolve("sys_int_service")
+            tray_thread = threading.Thread(target=sys_int.setup_tray, args=(window,), daemon=True)
+            tray_thread.start()
+            logger.info("System tray started in background thread")
+        except Exception as e:
+            logger.warning(f"Could not start system tray: {e}")
+
         logger.info("Entering wait loop (Press Ctrl+C to stop)...")
         wait()
     except KeyboardInterrupt:
