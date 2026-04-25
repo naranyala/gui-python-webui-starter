@@ -48,6 +48,7 @@ def setup_bindings(window: Window):
         ("search_service", APIModules.SEARCH),
         ("graph_service", APIModules.GRAPH),
         ("rust_service", APIModules.RUST),
+        ("system_service", "system"),
         ("sys_int_service", APIModules.SYSTEM),
         ("settings_service", APIModules.SETTINGS),
         ("db_service", "db"),
@@ -91,6 +92,10 @@ def create_window(
     """Create and configure the main application window."""
     global _window
     
+    if _window is not None:
+        logger.info("Window already exists, returning existing instance")
+        return _window
+    
     config = get_config()
     dist_path = get_resource_path()
     
@@ -113,6 +118,13 @@ def create_window(
         _window = Window()
         setup_bindings(_window)
         
+        # Maximize window by default to cover the entire screen size
+        try:
+            _window.maximize()
+            logger.info("Window maximized by default")
+        except Exception as e:
+            logger.warning(f"Could not maximize window: {e}")
+        
         if config.debug:
             url = f"http://{config.host}:{config.port}"
             logger.info(f"Debug mode enabled. Showing URL: {url}")
@@ -121,10 +133,9 @@ def create_window(
             else:
                 _window.set_size(config.window_width, config.window_height)
             
-            # Prefer Chromium/Chrome-like browsers in debug mode, fallback to default if needed
-            if not _window.show_browser(url, Browser.Chromium):
-                logger.info("Chromium not available in debug mode, falling back to default browser")
-                _window.show(url)
+            # Simplified window launching to avoid potential double-window issues
+            logger.info(f"Debug mode enabled. Showing URL: {url}")
+            _window.show(url)
         else:
             _window.set_root_folder(str(dist_path))
             if width and height:
@@ -132,11 +143,9 @@ def create_window(
             else:
                 _window.set_size(config.window_width, config.window_height)
             
+            # Simplified window launching to avoid potential double-window issues
             logger.info("Launching GUI window...")
-            # Prefer Chromium/Chrome-like browsers, fallback to default if needed
-            if not _window.show_browser("index.html", Browser.Chromium):
-                logger.info("Chromium not available, falling back to default browser")
-                _window.show("index.html")
+            _window.show("index.html")
         
         logger.info("Window created successfully")
         return _window

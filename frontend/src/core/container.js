@@ -69,10 +69,9 @@ export function createContainer() {
   const localContainer = new Map();
   const localSingletons = new Map();
 
-  return {
+  const api = {
     register: (key, factory, singleton = true) => {
       localContainer.set(key, { factory, singleton, instance: null });
-      return localContainer.get(key);
     },
     resolve: (key) => {
       if (!localContainer.has(key)) {
@@ -81,11 +80,11 @@ export function createContainer() {
       const entry = localContainer.get(key);
       if (entry.singleton) {
         if (!entry.instance) {
-          entry.instance = entry.factory(localContainer.get.bind(localContainer));
+          entry.instance = entry.factory(api);
         }
         return entry.instance;
       }
-      return entry.factory(localContainer.get.bind(localContainer));
+      return entry.factory(api);
     },
     has: (key) => localContainer.has(key),
     clear: () => {
@@ -93,6 +92,8 @@ export function createContainer() {
       localSingletons.clear();
     }
   };
+
+  return api;
 }
 
 export default { register, resolve, has, clear, createContainer };

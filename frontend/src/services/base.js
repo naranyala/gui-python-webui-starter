@@ -1,8 +1,10 @@
 import { getConfig } from '../core/config.js';
 import { z } from 'zod';
+import createCommunicationProvider from '../core/communication/index.js';
 
 /**
  * Custom Error class for API failures
+
  */
 export class ApiError extends Error {
   constructor(message, error = null, data = null) {
@@ -47,6 +49,7 @@ export class BaseService {
 export class ApiClient extends BaseService {
   constructor(container) {
     super(container);
+    this.provider = createCommunicationProvider();
   }
 
   /**
@@ -59,46 +62,28 @@ export class ApiClient extends BaseService {
     const cmd = `${module}:${action}`;
     console.log(`%c[Bridge Call] ${cmd}`, 'color: #3b82f6; font-weight: bold', { params });
 
-    if (window.webui) {
-      try {
-        const result = await window.webui.call(cmd, params);
-        const data = JSON.parse(result);
-        
-        if (!data.success) {
-          const error = new ApiError(data.error || 'Bridge request failed');
-          this._notifyError(error);
-          console.error(`%c[Bridge Error] ${cmd}: ${data.error}`, 'color: #ef4444');
-          throw error;
-        }
-        
-        return data.data;
-      } catch (error) {
-        if (!(error instanceof ApiError)) {
-          this._notifyError(error);
-        }
-        console.error(`%c[Bridge Exception] ${cmd}:`, 'color: #ef4444', error);
+    try {
+      const data = await this.provider.call(module, action, params);
+      
+      if (!data.success) {
+        const error = new ApiError(data.error || 'Bridge request failed');
+        this._notifyError(error);
+        console.error(`%c[Bridge Error] ${cmd}: ${data.error}`, 'color: #ef4444');
         throw error;
       }
-    } else {
-      // Fallback to REST if window.webui is not available
-      return this._fallbackRest(module, action, params);
+      
+      return data.data;
+    } catch (error) {
+      if (!(error instanceof ApiError)) {
+        this._notifyError(error);
+      }
+      console.error(`%c[Bridge Exception] ${cmd}:`, 'color: #ef4444', error);
+      throw error;
     }
   }
 
-  async _fallbackRest(module, action, params) {
-    const config = getConfig();
-    const url = `${config.apiBase}/${module}/${action}`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ params })
-    });
-    const data = await response.json();
-    if (!data.success) throw new Error(data.error);
-    return data.data;
-  }
-
   _notifyError(error) {
+
     try {
       const notificationService = this.container.resolve(Symbol.for('NotificationService'));
       if (notificationService) {

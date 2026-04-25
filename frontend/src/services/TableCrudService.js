@@ -1,15 +1,20 @@
 import { BaseService } from './base.js';
 
 export class TableCrudService extends BaseService {
+  constructor(container, apiClient) {
+    super(container);
+    this.apiClient = apiClient;
+  }
+
   async getData(tableName) {
-    return this.container.resolve(Symbol.for('ApiClient')).call('db', 'get_table_data', tableName);
+    return this.apiClient.get('db', 'get_table_data', { table: tableName });
   }
 
   async insert(tableName, data) {
-    return this.container.resolve(Symbol.for('ApiClient')).call('db', 'insert_record', JSON.stringify({ table: tableName, data }));
+    return this.apiClient.post('db', 'insert_record', { table: tableName, data });
   }
 
   async delete(tableName, rowId) {
-    return this.container.resolve(Symbol.for('ApiClient')).call('db', 'delete_record', JSON.stringify({ table: tableName, id: rowId }));
+    return this.apiClient.delete('db', 'delete_record', { table: tableName, id: rowId });
   }
 }

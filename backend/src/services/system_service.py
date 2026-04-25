@@ -1,11 +1,13 @@
 from typing import Dict, Any
 from .base import BaseService
+from ..core.bridge import api_action
 import psutil
 import platform
 
 class SystemService(BaseService):
     """Service for monitoring system resources."""
     
+    @api_action
     def get_stats(self) -> Dict[str, Any]:
         """Returns current system resource usage."""
         return {

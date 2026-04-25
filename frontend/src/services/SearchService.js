@@ -6,8 +6,9 @@ import { BaseService } from './base.js';
 import Fuse from 'fuse.js';
 
 export class SearchService extends BaseService {
-  constructor(container) {
+  constructor(container, apiClient) {
     super(container);
+    this.apiClient = apiClient;
     this._fuse = null;
     this._documents = [];
     this._threshold = 0.4;
@@ -51,14 +52,11 @@ export class SearchService extends BaseService {
 
     try {
       // Try API first
-      const apiClient = this.container.resolve(Symbol.for('ApiClient'));
-      const response = await apiClient.get('/search', { q: query });
-      if (response.success && response.data) {
-        return response.data.map(r => ({
-          item: { id: r.id, title: r.title },
-          score: r.score,
-        }));
-      }
+      const results = await this.apiClient.get('search', 'search', { q: query, limit });
+      return results.map(r => ({
+        item: { id: r.id, title: r.title },
+        score: r.score,
+      }));
     } catch (error) {
       console.warn('[SearchService] API unavailable, using local search');
     }

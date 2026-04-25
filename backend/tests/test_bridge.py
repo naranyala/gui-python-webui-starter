@@ -25,6 +25,60 @@ def test_bridge_binding_success():
     assert result["success"] is True
     assert result["data"] == "Hello World"
 
+def test_bridge_dispatch_success():
+    # Mock window object
+    mock_window = MagicMock()
+    bridge = Bridge(mock_window)
+    
+    def mock_handler(name="Guest"):
+        return f"Welcome {name}"
+    
+    bridge.bind("user", "welcome", mock_handler)
+    
+    # Simulate a JSON-RPC style dispatch event
+    event = MagicMock()
+    event.get_string.return_value = json.dumps({
+        "module": "user",
+        "action": "welcome",
+        "params": {"name": "Alice"}
+    })
+    
+    result_json = bridge.handle_dispatch(event)
+    result = json.loads(result_json)
+    
+    assert result["success"] is True
+    assert result["data"] == "Welcome Alice"
+
+def test_bridge_dispatch_invalid_action():
+    mock_window = MagicMock()
+    bridge = Bridge(mock_window)
+    
+    event = MagicMock()
+    event.get_string.return_value = json.dumps({
+        "module": "ghost",
+        "action": "boo",
+        "params": {}
+    })
+    
+    result_json = bridge.handle_dispatch(event)
+    result = json.loads(result_json)
+    
+    assert result["success"] is False
+    assert "Action ghost:boo not found" in result["error"]
+
+def test_bridge_dispatch_malformed_json():
+    mock_window = MagicMock()
+    bridge = Bridge(mock_window)
+    
+    event = MagicMock()
+    event.get_string.return_value = "{ invalid json }"
+    
+    result_json = bridge.handle_dispatch(event)
+    result = json.loads(result_json)
+    
+    assert result["success"] is False
+    assert "Dispatch error" in result["error"]
+
 def test_bridge_error_handling():
     mock_window = MagicMock()
     bridge = Bridge(mock_window)

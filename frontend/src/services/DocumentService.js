@@ -5,8 +5,9 @@
 import { BaseService } from './base.js';
 
 export class DocumentService extends BaseService {
-  constructor(container) {
+  constructor(container, apiClient) {
     super(container);
+    this.apiClient = apiClient;
     this._documents = [];
   }
 
@@ -39,10 +40,7 @@ export class DocumentService extends BaseService {
 
   async getAll() {
     try {
-      const response = await this.container.resolve(Symbol.for('ApiClient')).get('/documents');
-      if (response.success && response.data) {
-        this._documents = response.data;
-      }
+      this._documents = await this.apiClient.get('docs', 'get_all');
     } catch (error) {
       console.warn('[DocumentService] API unavailable, using local data');
     }
@@ -51,10 +49,7 @@ export class DocumentService extends BaseService {
 
   async getById(id) {
     try {
-      const response = await this.container.resolve(Symbol.for('ApiClient')).get(`/documents/${id}`);
-      if (response.success && response.data) {
-        return response.data;
-      }
+      return await this.apiClient.get('docs', 'get_by_id', { doc_id: id });
     } catch (error) {
       // Fallback to local
     }
@@ -71,7 +66,7 @@ export class DocumentService extends BaseService {
     };
 
     try {
-      await this.container.resolve(Symbol.for('ApiClient')).post('/documents', { title, content });
+      await this.apiClient.post('docs', 'create', { title, content });
     } catch (error) {
       // Continue with local
     }
@@ -88,7 +83,7 @@ export class DocumentService extends BaseService {
       doc.updated_at = new Date().toISOString();
 
       try {
-        await this.container.resolve(Symbol.for('ApiClient')).put(`/documents/${id}`, { title, content });
+        await this.apiClient.put('docs', 'update', { doc_id: id, title, content });
       } catch (error) {
         // Continue with local
       }
@@ -101,7 +96,7 @@ export class DocumentService extends BaseService {
     if (index !== -1) {
       this._documents.splice(index, 1);
       try {
-        await this.container.resolve(Symbol.for('ApiClient')).delete(`/documents/${id}`);
+        await this.apiClient.delete('docs', 'delete', { doc_id: id });
       } catch (error) {
         // Continue with local
       }

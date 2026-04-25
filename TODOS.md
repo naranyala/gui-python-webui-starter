@@ -53,9 +53,16 @@
 - [ ] **Settings Module**: User-configurable app settings (stored in SQLite).
 - [ ] **Log Viewer**: Real-time streaming of Python logs into a GUI console.
 
----
+## ⚠️ Technical Debt & Architectural Refactoring
 
-## 🚀 Phase 3: Future Development Potential
+### API & Communication
+- [ ] **Fix ApiClient Usage**: Standardize on `module:action` pattern across all services. Currently, `TodoService`, `DocumentService`, and `GraphService` incorrectly use REST-style paths (e.g., `/todos`), causing malformed bridge calls.
+- [ ] **Correct Response Handling**: Remove redundant `response.success` checks in services. `ApiClient` already handles this and returns `data.data` directly.
+- [ ] **Standardize Parameter Serialization**: Remove manual `JSON.stringify` calls in `TableCrudService`; ensure `ApiClient` handles object serialization consistently.
+
+### Dependency Injection
+- [ ] **Improve Service Injection**: Instead of services manually resolving `ApiClient` via `this.container.resolve(Symbol.for('ApiClient'))`, inject the `ApiClient` directly into the service constructors.
+
 
 ### 1. Artificial Intelligence (Local AI)
 - [ ] **Local LLM Integration**: Use `llama-cpp-python` to embed a local AI chat module.

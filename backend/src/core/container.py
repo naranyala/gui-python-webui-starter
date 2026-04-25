@@ -26,9 +26,6 @@ class DIContainer:
     def __contains__(self, item: object) -> bool:
         return item in self._services
 
-    def __contains__(self, item: object) -> bool:
-        return item in self._services
-
 # Global container instance
 _container = DIContainer()
 

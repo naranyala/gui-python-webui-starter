@@ -5,8 +5,9 @@
 import { BaseService } from './base.js';
 
 export class GraphService extends BaseService {
-  constructor(container) {
+  constructor(container, apiClient) {
     super(container);
+    this.apiClient = apiClient;
     this._graphData = {
       nodes: [],
       edges: [],
@@ -35,14 +36,11 @@ export class GraphService extends BaseService {
 
   async getGraph() {
     try {
-      const apiClient = this.container.resolve(Symbol.for('ApiClient'));
-      const response = await apiClient.get('/graph');
-      if (response.success && response.data) {
-        this._graphData = {
-          nodes: response.data.nodes.map(n => ({ data: n })),
-          edges: response.data.edges.map(e => ({ data: e })),
-        };
-      }
+      const data = await this.apiClient.get('graph', 'get_graph');
+      this._graphData = {
+        nodes: data.nodes.map(n => ({ data: n })),
+        edges: data.edges.map(e => ({ data: e })),
+      };
     } catch (error) {
       console.warn('[GraphService] API unavailable, using local data');
     }

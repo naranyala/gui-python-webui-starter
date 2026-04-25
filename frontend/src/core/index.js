@@ -44,27 +44,27 @@ export function initializeServices() {
 
   // Register services with DI
   register(SERVICE_KEYS.DOCUMENT_SERVICE, (container) => {
-    return new DocumentService(container);
+    return new DocumentService(container, container.resolve(SERVICE_KEYS.API_CLIENT));
   });
 
   register(SERVICE_KEYS.SEARCH_SERVICE, (container) => {
-    return new SearchService(container);
+    return new SearchService(container, container.resolve(SERVICE_KEYS.API_CLIENT));
   });
 
   register(SERVICE_KEYS.GRAPH_SERVICE, (container) => {
-    return new GraphService(container);
+    return new GraphService(container, container.resolve(SERVICE_KEYS.API_CLIENT));
   });
 
   register(SERVICE_KEYS.TODO_SERVICE, (container) => {
-    return new TodoService(container);
+    return new TodoService(container, container.resolve(SERVICE_KEYS.API_CLIENT));
   });
 
   register(SERVICE_KEYS.DATABASE_SERVICE, (container) => {
-    return new DatabaseService(container);
+    return new DatabaseService(container, container.resolve(SERVICE_KEYS.API_CLIENT));
   });
 
   register(SERVICE_KEYS.T_SERVICE, (container) => {
-    return new TableCrudService(container);
+    return new TableCrudService(container, container.resolve(SERVICE_KEYS.API_CLIENT));
   });
 
   console.log('[Core] Services initialized');

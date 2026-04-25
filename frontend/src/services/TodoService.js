@@ -6,8 +6,9 @@ import { BaseService } from './base.js';
  * and prevents infinite re-rendering loops.
  */
 export class TodoService extends BaseService {
-  constructor(container) {
+  constructor(container, apiClient) {
     super(container);
+    this.apiClient = apiClient;
     this._todos = [];
     this._subscribers = new Set();
     this._loading = false;
@@ -29,7 +30,6 @@ export class TodoService extends BaseService {
     }
   }
 
-  // --- Data Actions ---
   async getAll() {
     if (this._loading) return;
     
@@ -37,10 +37,7 @@ export class TodoService extends BaseService {
     this._notify();
     
     try {
-      const response = await this.container.resolve(Symbol.for('ApiClient')).get('/todos');
-      if (response.success && response.data) {
-        this._todos = response.data;
-      }
+      this._todos = await this.apiClient.get('todos', 'get_all');
     } catch (error) {
       console.error('[TodoService] Failed to fetch todos', error);
     } finally {
@@ -51,12 +48,10 @@ export class TodoService extends BaseService {
 
   async create(task) {
     try {
-      const response = await this.container.resolve(Symbol.for('ApiClient')).post('/todos', task);
-      if (response.success && response.data) {
-        this._todos = [response.data, ...this._todos];
-        this._notify();
-        return response.data;
-      }
+      const todo = await this.apiClient.post('todos', 'create', { task });
+      this._todos = [todo, ...this._todos];
+      this._notify();
+      return todo;
     } catch (error) {
       console.error('[TodoService] Failed to create todo', error);
     }
@@ -72,11 +67,7 @@ export class TodoService extends BaseService {
     this._notify();
 
     try {
-      const response = await this.container.resolve(Symbol.for('ApiClient')).put(`/todos/${id}/toggle`);
-      if (!response.success) {
-        this._todos = original;
-        this._notify();
-      }
+      await this.apiClient.put('todos', 'toggle', { todo_id: id });
     } catch (error) {
       this._todos = original;
       this._notify();
@@ -89,11 +80,7 @@ export class TodoService extends BaseService {
     this._notify();
 
     try {
-      const response = await this.container.resolve(Symbol.for('ApiClient')).delete(`/todos/${id}`);
-      if (!response.success) {
-        this._todos = original;
-        this._notify();
-      }
+      await this.apiClient.delete('todos', 'delete', { todo_id: id });
     } catch (error) {
       this._todos = original;
       this._notify();
@@ -106,11 +93,7 @@ export class TodoService extends BaseService {
     this._notify();
 
     try {
-      const response = await this.container.resolve(Symbol.for('ApiClient')).delete('/todos/completed');
-      if (!response.success) {
-        this._todos = original;
-        this._notify();
-      }
+      await this.apiClient.delete('todos', 'clear_completed');
     } catch (error) {
       this._todos = original;
       this._notify();
